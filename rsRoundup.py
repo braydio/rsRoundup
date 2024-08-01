@@ -3,6 +3,7 @@ import yfinance as yf
 from datetime import datetime, timedelta
 import re
 import time
+import os
 
 
 print("               ____                        __           ")
@@ -29,6 +30,9 @@ params = {
     "start": 0,
     "count": 100
 }
+
+# Headers
+headers = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
 
 # --- Functions ---
 def get_ticker_symbols(display_names):
@@ -70,6 +74,68 @@ def write_results_to_file(results, filename='output.txt'):
                     f.write("Current Price: N/A\n\n") 
                     f.write("TradingView URL: N/A\n\n")
 
+def download_filing(filing_url, destination_folder='filings'):
+    """
+    (Trying to) Download the filing from the given URL and save it to the specified folder.
+    """
+    try:
+        os.makedirs(destination_folder, exist_ok=True)  # Create folder if not exists
+        filename = filing_url.split("/")[-1]
+        filepath = os.path.join(destination_folder, filename)
+
+        response = requests.get(filing_url, headers=headers)
+        response.raise_for_status()
+
+        with open(filepath, 'w') as f:
+            f.write(response.text)
+        
+        print(f"Filing downloaded: {filepath}")
+        return filepath
+    except Exception as e:
+        print(f"Error downloading filing: {e}")
+        return None
+
+def get_recent_filings(cik, company_name):
+    """
+    Fetch recent filings for a given CIK and return the most recent ones.
+    """
+    filings_url = "https://efts.sec.gov/LATEST/search-index"
+    filings_params = {
+        "q": f"cik:{cik}",
+        "dateRange": "custom",
+        "startdt": start_date,
+	    "enddt": end_date,
+	    "category": "full",
+        "start": 0,
+        "count": 10
+    }
+
+    try:
+        filings_response = requests.get(filings_url, params=filings_params, headers=headers)
+        filings_response.raise_for_status()
+        filings_data = filings_response.json()
+
+        recent_filings = []
+        if 'hits' in filings_data and 'hits' in filings_data['hits']:
+            for filing in filings_data['hits']['hits']:
+                filing_info = {
+                    "form_type": filing['_source'].get('form', 'N/A'),
+                    "file_date": filing['_source'].get('file_date', 'N/A'),
+                    "description": filing['_source'].get('file_description', 'N/A'),
+                    "accession_number": filing['_source'].get('accession_number', 'N/A')
+                }
+                recent_filings.append(filing_info)
+                # Generate link for the filing
+                accession_number = filing_info['accession_number']
+                filing_url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession_number.replace('-', '')}/{accession_number}.txt"
+                filing_info["filing_url"] = filing_url
+
+        return recent_filings
+
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to fetch recent filings for {company_name}: {e}")
+        return []
+
 # --- Main Script ---
 try:
     response = requests.get(url, params=params, headers={"User-Agent": "MyApp/1.0 (my.email@example.com)"})
@@ -90,10 +156,29 @@ try:
                     "period_ending": result['_source'].get('period_ending', 'N/A'),
                     "display_names": result['_source'].get('display_names', []),
                     "tickers": get_ticker_symbols(result['_source'].get('display_names', []))
-                }                
-                results.append(filing_info)
-                
+                }
 
+                # Add filing URL
+                cik_match = re.search(r"\(CIK (\d+)\)", ', '.join(result['_source'].get('display_names', [])))
+                cik = cik_match.group(1) if cik_match else 'N/A'
+                
+                # Remove leading zeros
+                if cik != 'N/A':
+                    cik = cik.lstrip('0')  # Strip leading zeros
+
+                accession_number = result['_source'].get('accession_number', 'N/A')
+                filing_info["filing_url"] = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession_number.replace('-', '')}/{accession_number}.txt"
+
+                results.append(filing_info)
+
+                # Optionally download the filing
+                download_filing(filing_info["filing_url"])
+
+                # Fetch recent filings for the company
+                recent_filings = get_recent_filings(cik, ', '.join(result['_source'].get('display_names', [])))
+                for filing in recent_filings:
+                    print(f"Recent Filing for {result['_source'].get('display_names', [])}: {filing}")
+                
     # Remove duplicates based on file number and filter for valid dates
     results = list({r['file_number']: r for r in results}.values()) 
     filtered_results = filter(lambda x: 'file_date' in x, results)
