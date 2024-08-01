@@ -54,15 +54,31 @@ def get_current_price(ticker):
         return "N/A"
 
 def write_results_to_file(results, filename='output.txt'):
-    unique_file_numbers = set() 
+    unique_file_numbers = set()
+
+    # Create a mapping for neatly printing the field names
+    field_name_mapping = {
+        'file_number': 'File Number',
+        'accession_number': 'Accession Number',
+        'form_type': 'Form Type',
+        'primary_doc_description': 'Description',
+        'file_date': 'File Date',
+        'period_ending': 'Period Ending',
+        'display_names': 'Company Info',
+        'filing_url': 'Filing URL',
+    } 
 
     with open(filename, 'w') as f:
-        f.write(f"Total Unique Results: {len(results)}\n\n")
+        f.write(f"Total Unique Results: {len(results)}\n\n")  # Count unique results
         for result in results:
-            if result['file_number'] not in unique_file_numbers:
+            # Check if file number is already processed
+            if result['file_number'] not in unique_file_numbers: 
                 unique_file_numbers.add(result['file_number'])
+
                 for key, value in result.items():
-                    f.write(f"{key.capitalize()}: {value}\n")
+                    # Use the field name mapping to print human-readable field names
+                    field_name = field_name_mapping.get(key, key).capitalize()
+                    f.write(f"{field_name}: {value}\n")
 
                 # Display Ticker Price
                 if result['tickers']:
@@ -73,6 +89,7 @@ def write_results_to_file(results, filename='output.txt'):
                 else:
                     f.write("Current Price: N/A\n\n") 
                     f.write("TradingView URL: N/A\n\n")
+
 
 def download_filing(filing_url, destination_folder='filings'):
     """
