@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import re
 import time
 import os
-
+import json
 
 print("               ____                        __           ")
 print("    __________/ __ \\____  __  ______  ____/ /_  ______  ")
@@ -13,9 +13,10 @@ print("  / /  (__  ) _, _/ /_/ / /_/ / / / / /_/ / /_/ / /_/ / ")
 print(" /_/  /____/_/ |_|\\____/\\__,_/_/ /_/\\__,_/\\__,_/ .___/  ")
 print("                                               /_/      ")
 
-print("rsRoundup script v1.0 created by @Braydio aka @bchaffee23")
+print("rsRoundup script v1.0 created by @Braydio")
 print("Contributions by @echo and @ckzz on Xtrades")
 print("https://github.com/bchaffee23/rsRoundup\n\n")
+
 
 # --- Configuration ---
 url = "https://efts.sec.gov/LATEST/search-index"
@@ -90,7 +91,6 @@ def write_results_to_file(results, filename='output.txt'):
                     f.write("Current Price: N/A\n\n") 
                     f.write("TradingView URL: N/A\n\n")
 
-
 def download_filing(filing_url, destination_folder='filings'):
     """
     (Trying to) Download the filing from the given URL and save it to the specified folder.
@@ -121,8 +121,8 @@ def get_recent_filings(cik, company_name):
         "q": f"cik:{cik}",
         "dateRange": "custom",
         "startdt": start_date,
-	    "enddt": end_date,
-	    "category": "full",
+        "enddt": end_date,
+        "category": "full",
         "start": 0,
         "count": 10
     }
@@ -139,7 +139,7 @@ def get_recent_filings(cik, company_name):
                     "form_type": filing['_source'].get('form', 'N/A'),
                     "file_date": filing['_source'].get('file_date', 'N/A'),
                     "description": filing['_source'].get('file_description', 'N/A'),
-                    "accession_number": filing['_source'].get('accession_number', 'N/A')
+                    "accession_number": filing['_source'].get('adsh', 'N/A')
                 }
                 recent_filings.append(filing_info)
                 # Generate link for the filing
@@ -153,11 +153,39 @@ def get_recent_filings(cik, company_name):
         print(f"Failed to fetch recent filings for {company_name}: {e}")
         return []
 
+def construct_filing_url(cik, adsh, file_id):
+    base_url = "https://www.sec.gov/Archives/edgar/data/"
+    return f"{base_url}{cik}/{adsh.replace('-', '')}/{file_id}"
+
+def delete_old_files(directory='filings'):
+    """
+    Confirm and delete all files in the specified directory.
+    """
+    try:
+        files = os.listdir(directory)
+        if files:
+            confirm = input(f"{len(files)} files found in '{directory}'. Do you want to delete them? (yes/no): ")
+            if confirm.lower() == 'yes':
+                for file in files:
+                    file_path = os.path.join(directory, file)
+                    os.remove(file_path)
+                    print(f"Deleted: {file_path}")
+            else:
+                print("Skipping file deletion.")
+        else:
+            print("No files to delete.")
+    except FileNotFoundError:
+        print(f"Directory '{directory}' not found, creating it...")
+        os.makedirs(directory, exist_ok=True)
+
 # --- Main Script ---
+delete_old_files('filings')  # Confirm and delete old files before running
+
 try:
-    response = requests.get(url, params=params, headers={"User-Agent": "MyApp/1.0 (my.email@example.com)"})
+    response = requests.get(url, params=params, headers=headers)
     response.raise_for_status()
     data = response.json()
+    print(json.dumps(data, indent=2))
 
     results = []
     if 'hits' in data and 'hits' in data['hits']:
@@ -166,7 +194,7 @@ try:
             if form_type in ['8-K', 'S-1', 'S-3', 'S-4']:
                 filing_info = {
                     "file_number": result['_source'].get('file_num', ['N/A'])[0],
-                    "accession_number": result['_source'].get('accession_num', ['N/A'])[0], 
+                    "accession_number": result['_source'].get('adsh', 'N/A'),  # Use ADSH as filing ID
                     "form_type": form_type,
                     "primary_doc_description": result['_source'].get('file_description', 'N/A'),
                     "file_date": result['_source'].get('file_date', 'N/A'),
@@ -175,28 +203,17 @@ try:
                     "tickers": get_ticker_symbols(result['_source'].get('display_names', []))
                 }
 
-                # Add filing URL
-                cik_match = re.search(r"\(CIK (\d+)\)", ', '.join(result['_source'].get('display_names', [])))
-                cik = cik_match.group(1) if cik_match else 'N/A'
-                
-                # Remove leading zeros
-                if cik != 'N/A':
-                    cik = cik.lstrip('0')  # Strip leading zeros
-
-                accession_number = result['_source'].get('accession_number', 'N/A')
-                filing_info["filing_url"] = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession_number.replace('-', '')}/{accession_number}.txt"
+                # Construct the filing URL
+                cik = result['_source'].get('ciks', [''])[0]  # Get the first CIK value
+                file_id = result['_id'].split(":")[1]  # Extract the file ID from _id
+                filing_info["filing_url"] = construct_filing_url(cik, filing_info["accession_number"], file_id)
 
                 results.append(filing_info)
 
                 # Optionally download the filing
                 download_filing(filing_info["filing_url"])
 
-                # Fetch recent filings for the company
-                recent_filings = get_recent_filings(cik, ', '.join(result['_source'].get('display_names', [])))
-                for filing in recent_filings:
-                    print(f"Recent Filing for {result['_source'].get('display_names', [])}: {filing}")
-                
-    # Remove duplicates based on file number and filter for valid dates
+    # Process results, remove duplicates, etc.
     results = list({r['file_number']: r for r in results}.values()) 
     filtered_results = filter(lambda x: 'file_date' in x, results)
 
@@ -208,12 +225,10 @@ try:
     write_results_to_file(sorted_results)
 
     print(f"\nrsRoundup located {len(sorted_results)} filings...\n")
-    print("Results are saved in 'output.txt'\n")
+    print("Results are saved to 'output.txt'\n")
+    print("Filings  saved in master.zip\n")
 
 except requests.exceptions.RequestException as e:
     with open('output.txt', 'w') as f:
         f.write(f"Request failed: {e}\n")
     print(f"Request failed: {e}")
-
-print(f"     rsRoundup located {len(sorted_results)} filings...\n\n")
-print("Results will be located in a file titled output.txt\n\n")
