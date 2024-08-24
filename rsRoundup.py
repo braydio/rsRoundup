@@ -185,7 +185,9 @@ try:
     response = requests.get(url, params=params, headers=headers)
     response.raise_for_status()
     data = response.json()
-    print(json.dumps(data, indent=2))
+    
+    # Uncomment this for a raw dump from API 
+    # print(json.dumps(data, indent=2))
 
     results = []
     if 'hits' in data and 'hits' in data['hits']:
