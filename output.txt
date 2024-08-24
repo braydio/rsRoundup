@@ -1,0 +1,106 @@
+Total Unique Results: 8
+
+File number: 001-39525
+Accession number: 0001628280-24-038349
+Form type: 8-K
+Description: 8-K
+File date: 2024-08-23
+Period ending: 2024-08-23
+Company info: ['ESS Tech, Inc.  (GWH, GWH-WT)  (CIK 0001819438)']
+Tickers: ['GWH', 'GWH-WT']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001819438/000162828024038349/wk-20240823.htm
+Current Price (as of 2024-08-24): 0.54
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=GWH
+
+File number: 811-21650
+Accession number: 0001999371-24-010554
+Form type: 8-K
+Description: RIGHTS AGREEMENT
+File date: 2024-08-23
+Period ending: 2024-08-22
+Company info: ['ASA Gold & Precious Metals Ltd  (ASA)  (CIK 0001230869)']
+Tickers: ['ASA']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001230869/000199937124010554/ex4-1.htm
+Current Price (as of 2024-08-24): 19.57
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=ASA
+
+File number: 333-281755
+Accession number: 0001437749-24-027669
+Form type: S-1
+Description: FORM S-1
+File date: 2024-08-23
+Period ending: None
+Company info: ['WINDTREE THERAPEUTICS INC /DE/  (WINT, WINTW)  (CIK 0000946486)']
+Tickers: ['WINT', 'WINTW']
+Filing url: https://www.sec.gov/Archives/edgar/data/0000946486/000143774924027669/wint20240822_s1.htm
+Current Price (as of 2024-08-24): 11.03
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=WINT
+
+File number: 001-38411
+Accession number: 0001213900-24-071659
+Form type: 8-K
+Description: AGREEMENT AND PLAN OF MERGER, DATED AS OF AUGUST 21, 2024, BY AND AMONG RAFAEL, CYCLO, FIRST MERGER SUB AND SECOND MERGER SUB
+File date: 2024-08-22
+Period ending: 2024-08-21
+Company info: ['Rafael Holdings, Inc.  (RFL)  (CIK 0001713863)']
+Tickers: ['RFL']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001713863/000121390024071659/ea021208501ex2-1_rafael.htm
+Current Price (as of 2024-08-24): 1.42
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=RFL
+
+File number: 001-39780
+Accession number: 0001437749-24-027572
+Form type: 8-K
+Description: EXHIBIT 2.1
+File date: 2024-08-22
+Period ending: 2024-08-21
+Company info: ['Cyclo Therapeutics, Inc.  (CYTH, CYTHW)  (CIK 0000922247)']
+Tickers: ['CYTH', 'CYTHW']
+Filing url: https://www.sec.gov/Archives/edgar/data/0000922247/000143774924027572/ex_717497.htm
+Current Price (as of 2024-08-24): 0.92
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=CYTH
+
+File number: 001-40809
+Accession number: 0001493152-24-033181
+Form type: 8-K
+Description: None
+File date: 2024-08-20
+Period ending: 2024-08-16
+Company info: ['EzFill Holdings Inc  (EZFL)  (CIK 0001817004)']
+Tickers: ['EZFL']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001817004/000149315224033181/ex10-7.htm
+Current Price (as of 2024-08-24): 3.0
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=EZFL
+
+File number: 001-41895
+Accession number: 0001493152-24-033279
+Form type: 8-K
+Description: None
+File date: 2024-08-20
+Period ending: 2024-08-15
+Company info: ['Prairie Operating Co.  (PROP)  (CIK 0001162896)']
+Tickers: ['PROP']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001162896/000149315224033279/ex3-1.htm
+Current Price (as of 2024-08-24): 8.89
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=PROP
+
+File number: 001-39617
+Accession number: 0001193125-24-202813
+Form type: 8-K
+Description: 8-K
+File date: 2024-08-19
+Period ending: 2024-08-14
+Company info: ['Aligos Therapeutics, Inc.  (ALGS)  (CIK 0001799448)']
+Tickers: ['ALGS']
+Filing url: https://www.sec.gov/Archives/edgar/data/0001799448/000119312524202813/d882619d8k.htm
+Current Price (as of 2024-08-24): 13.84
+
+TradingView URL: https://www.tradingview.com/chart/?symbol=ALGS
+
