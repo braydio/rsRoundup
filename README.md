@@ -42,6 +42,7 @@ Update the following variables in `autoRSA.py`:
 
 - `start_date` and `end_date`: Define the date range for the search. 
     'timedelta(days=7)' will set the start date to be 1 week prior
+    
 - Search params can be changed, current search parameters are 
     
     "q": "\"reverse split\" AND \"fractional shares\" OR \"Rounded Up\" OR \"rounding\"",
