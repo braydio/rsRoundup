@@ -40,7 +40,6 @@ The `rsRoundup` script is designed to fetch and process recent SEC filings relat
 
 Update the following variables in `autoRSA.py`:
 
-- `url`: The SEC search index URL.
 - `start_date` and `end_date`: Define the date range for the search.
 
 ## Contributing
