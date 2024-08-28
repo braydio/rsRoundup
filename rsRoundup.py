@@ -2,86 +2,79 @@ import requests
 import yfinance as yf
 from datetime import datetime, timedelta
 import re
-import time
 import os
-import json
 from bs4 import BeautifulSoup
 
-print("               ____                        __           ")
-print("    __________/ __ \\____  __  ______  ____/ /_  ______  ")
-print("   / ___/ ___/ /_/ / __ \\/ / / / __ \\/ __  / / / / __ \\ ")
-print("  / /  (__  ) _, _/ /_/ / /_/ / / / / /_/ / /_/ / /_/ / ")
-print(" /_/  /____/_/ |_|\\____/\\__,_/_/ /_/\\__,_/\\__,_/ .___/  ")
-print("                                               /_/      ")
-
-print("rsRoundup script v1.0 created by @Braydio")
-print("Contributions by @echo and @ckzz on Xtrades")
-print("https://github.com/bchaffee23/rsRoundup\n\n")
-
-
 # --- Configuration ---
-url = "https://efts.sec.gov/LATEST/search-index"
-end_date = datetime.today().strftime('%Y-%m-%d')
-start_date = (datetime.today() - timedelta(days=7)).strftime('%Y-%m-%d')
-params = {
-    "q": "\"reverse split\" AND \"fractional shares\" OR \"Rounded Up\" OR \"rounding\"",
-    "dateRange": "custom",
-    "startdt": start_date,
-    "enddt": end_date,
-    "category": "full",
-    "start": 0,
-    "count": 100
-}
+BASE_URL = "https://efts.sec.gov/LATEST/search-index"
+HEADERS = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
+START_DATE = (datetime.today() - timedelta(days=7)).strftime('%Y-%m-%d')
+END_DATE = datetime.today().strftime('%Y-%m-%d')
+DEFAULT_OUTPUT_FILE = 'output.txt'
+DEFAULT_FILINGS_FOLDER = 'filings'
+KEYWORDS = ["reverse stock split", "no fractional shares", "reverse split"]
+IN_LIEU_KEYWORDS = ["in lieu"]
 
-# Headers
-headers = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
+def display_intro():
+    intro_text = """
+               ____                        __           
+    __________/ __ \\____  __  ______  ____/ /_  ______  
+   / ___/ ___/ /_/ / __ \\/ / / / __ \\/ __  / / / / __ \\ 
+  / /  (__  ) _, _/ /_/ / /_/ / / / / /_/ / /_/ / /_/ / 
+ /_/  /____/_/ |_|\\____/\\__,_/_/ /_/\\__,_/\\__,_/ .___/  
+                                               /_/      
 
-# --- Functions ---
-def write_results_to_file(results, filename='output.txt'):
-    unique_file_numbers = set()
+rsRoundup script v1.0 created by @Braydio
+Contributions by @echo and @ckzz on Xtrades
+https://github.com/bchaffee23/rsRoundup
 
-    # Create a mapping for neatly printing the field names
+"""
+    print(intro_text)
+
+def get_search_params():
+    return {
+        "q": "\"reverse split\" AND \"fractional shares\" OR \"Rounded Up\" OR \"rounding\"",
+        "dateRange": "custom",
+        "startdt": START_DATE,
+        "enddt": END_DATE,
+        "category": "full",
+        "start": 0,
+        "count": 100
+    }
+
+def write_results_to_file(results, filename=DEFAULT_OUTPUT_FILE):
     field_name_mapping = {
-        #'file_number': 'File Number',
-        #'accession_number': 'Accession Number',
         'display_names': 'Company Info',
         'form_type': 'Form Type',
         'primary_doc_description': 'Description',
         'file_date': 'File Date',
         'period_ending': 'Period Ending',
-        'filing_url': 'Filing URL',
-    } 
-
+        'in_lieu_flag': 'Cash in Lieu: ',
+    }
+    
     with open(filename, 'w') as f:
-        f.write(f"Total Unique Results: {len(results)}\n\n")  # Count unique results
+        f.write(f"Total Unique Results: {len(results)}\n\n")
         for result in results:
-            # Check if file number is already processed
-            if result['file_number'] not in unique_file_numbers: 
-                unique_file_numbers.add(result['file_number'])
+            f.write("===========================================\n")
+            # Printing the fields in the required order
+            f.write(f"{field_name_mapping['display_names']}: {result.get('display_names', 'N/A')}\n")
+            f.write(f"{field_name_mapping['form_type']}: {result.get('form_type', 'N/A')}\n")
+            f.write(f"{field_name_mapping['primary_doc_description']}: {result.get('primary_doc_description', 'N/A')}\n")
+            f.write(f"{field_name_mapping['file_date']}: {result.get('file_date', 'N/A')}\n")
+            f.write(f"{field_name_mapping['period_ending']}: {result.get('period_ending', 'N/A')}\n")
+            
+            # Check for the 'in lieu' flag and print it
+            in_lieu = "LIKELY CASH-IN-LIEU - SEE EXCERPT" if 'in_lieu_flag' in result else "N/A"
+            f.write(f"{field_name_mapping['in_lieu_flag']}{in_lieu}\n")
+            
+            f.write("===========================================\n")
+            f.write("\n")
 
-                for key, value in result.items():
-                    # Use the field name mapping to print human-readable field names
-                    field_name = field_name_mapping.get(key, key).capitalize()
-                    f.write(f"{field_name}: {value}\n")
 
-'''' def extract_company_name(display_names):
-    '
-    Extract the company name from the 'Company info' section before the first open parenthesis.
-    '
-    if display_names:
-        company_name = display_names[0].split('(')[0].strip()  # Get the text before the first '('
-        return company_name
-    return "Unknown_Company"'''
-
-def save_excerpt(excerpt, company_name, form_type, destination_folder='filings'):
-    """
-    Save the relevant excerpt as a .txt file.
-    """
+def save_excerpt(excerpt, company_name, form_type, destination_folder=DEFAULT_FILINGS_FOLDER):
     try:
-        os.makedirs(destination_folder, exist_ok=True)  # Create folder if it doesn't exist
-
-        # Construct the filename
-        sanitized_company_name = re.sub(r'[\\/*?:"<>|]', "", company_name)  # Remove invalid characters
+        os.makedirs(destination_folder, exist_ok=True)
+        sanitized_company_name = re.sub(r'[\\/*?:"<>|]', "", company_name)
         filename = f"{sanitized_company_name}, {form_type} - Excerpt.txt"
         filepath = os.path.join(destination_folder, filename)
 
@@ -94,62 +87,47 @@ def save_excerpt(excerpt, company_name, form_type, destination_folder='filings')
         print(f"Error saving excerpt: {e}")
         return None
 
-def extract_relevant_excerpt(result, filing_url, company_name, form_type):
-
-    """
-    Extract relevant excerpts from the filing based on specific keywords or patterns.
-    Includes line numbers for context and shortens excerpts around the keywords.
-    """
+def extract_relevant_excerpt(filing_url, company_name, form_type):
     try:
-        response = requests.get(filing_url, headers=headers)
+        response = requests.get(filing_url, headers=HEADERS)
         response.raise_for_status()
         
-        # Parse HTML content
         soup = BeautifulSoup(response.text, 'html.parser')
         text_content = soup.get_text()
         
-        # Define the keywords or patterns to look for
-        keywords = ["reverse stock split", "no fractional shares", "reverse split"]
-        in_lieu_keywords = ["in lieu"]
-
-        # Split the text content into lines for line number tracking
         lines = text_content.split('\n')
-        
         excerpts = []
         in_lieu_excerpts = []
+        cash_in_lieu_flag = False
 
         for line_number, line in enumerate(lines, start=1):
             line_lower = line.lower()
-            # Check for keywords for general excerpts
-            for keyword in keywords:
+            for keyword in KEYWORDS:
                 if keyword.lower() in line_lower:
-                    # Shorten the excerpt to include a snippet around the keyword
                     start = max(line_lower.find(keyword.lower()) - 50, 0)
                     end = min(line_lower.find(keyword.lower()) + len(keyword) + 50, len(line))
                     snippet = line[start:end].strip()
                     excerpts.append(f"Line {line_number}: {snippet}")
-            # Check for 'in lieu' for the specific flag
-            for in_lieu_keyword in in_lieu_keywords:
+
+            for in_lieu_keyword in IN_LIEU_KEYWORDS:
                 if in_lieu_keyword.lower() in line_lower:
                     start = max(line_lower.find(in_lieu_keyword.lower()) - 30, 0)
                     end = min(line_lower.find(in_lieu_keyword.lower()) + len(in_lieu_keyword) + 30, len(line))
                     snippet = line[start:end].strip()
                     in_lieu_excerpts.append(f"Line {line_number}: {snippet}")
+                    cash_in_lieu_flag = True  # Set the flag if "in lieu" is found
 
-        # Define file names
         excerpt_filename = os.path.join('filings', f"{company_name}, {form_type} - Excerpt.txt")
         in_lieu_filename = os.path.join('filings', f"{company_name}, {form_type} - In Lieu Flag.txt")
         
-        # Save excerpt if found
         if excerpts:
-            os.makedirs('filings', exist_ok=True)  # Ensure the 'filings' directory exists
+            os.makedirs('filings', exist_ok=True)
             with open(excerpt_filename, 'w', encoding='utf-8') as f:
                 f.write('Relevant excerpts:\n')
                 for excerpt in excerpts:
                     f.write(f"{excerpt}\n")
             print(f"Excerpt saved to {excerpt_filename}")
 
-        # Save in-lieu flag if applicable
         if in_lieu_excerpts:
             with open(in_lieu_filename, 'w', encoding='utf-8') as f:
                 f.write('Relevant excerpts with "in lieu":\n')
@@ -157,22 +135,20 @@ def extract_relevant_excerpt(result, filing_url, company_name, form_type):
                     f.write(f"{in_lieu_excerpt}\n")
             print(f"In Lieu Flag saved to {in_lieu_filename}")
 
+        return cash_in_lieu_flag
+
     except Exception as e:
         print(f"Error extracting excerpt: {e}")
+        return False  # Return False if there was an error
 
-def download_filing(filing_url, company_name, form_type, destination_folder='filings'):
-    """
-    Download the filing from the given URL and save it as an .htm file.
-    """
+def download_filing(filing_url, company_name, form_type, destination_folder=DEFAULT_FILINGS_FOLDER):
     try:
-        os.makedirs(destination_folder, exist_ok=True)  # Create folder if it doesn't exist
-
-        # Construct the filename
-        sanitized_company_name = re.sub(r'[\\/*?:"<>|]', "", company_name)  # Remove invalid characters
+        os.makedirs(destination_folder, exist_ok=True)
+        sanitized_company_name = re.sub(r'[\\/*?:"<>|]', "", company_name)
         filename = f"{sanitized_company_name}, {form_type} - Filing.htm"
         filepath = os.path.join(destination_folder, filename)
 
-        response = requests.get(filing_url, headers=headers)
+        response = requests.get(filing_url, headers=HEADERS)
         response.raise_for_status()
 
         with open(filepath, 'wb') as f:
@@ -184,59 +160,11 @@ def download_filing(filing_url, company_name, form_type, destination_folder='fil
         print(f"Error downloading filing: {e}")
         return None
 
-def get_recent_filings(cik, company_name):
-    """
-    Fetch recent filings for a given CIK and return the most recent ones.
-    """
-    filings_url = "https://efts.sec.gov/LATEST/search-index"
-    filings_params = {
-        "q": f"cik:{cik}",
-        "dateRange": "custom",
-        "startdt": start_date,
-        "enddt": end_date,
-        "category": "full",
-        "start": 0,
-        "count": 10
-    }
-
-    try:
-        filings_response = requests.get(filings_url, params=filings_params, headers=headers)
-        filings_response.raise_for_status()
-        filings_data = filings_response.json()
-
-        recent_filings = []
-        if 'hits' in filings_data and 'hits' in filings_data['hits']:
-            for filing in filings_data['hits']['hits']:
-                filing_info = {
-                "file_number": result['_source'].get('file_num', ['N/A'])[0],
-                "accession_number": result['_source'].get('adsh', 'N/A'),  # Use ADSH as filing ID
-                "form_type": form_type,
-                "primary_doc_description": result['_source'].get('file_description', 'N/A'),
-                "file_date": result['_source'].get('file_date', 'N/A'),
-                "period_ending": result['_source'].get('period_ending', 'N/A'),
-                "display_names": result['_source'].get('display_names', []),
-                #"tickers": get_ticker_symbols(result['_source'].get('display_names', []))
-                }
-                recent_filings.append(filing_info)
-                # Generate link for the filing
-                accession_number = filing_info['accession_number']
-                filing_url = f"https://www.sec.gov/Archives/edgar/data/{cik}/{accession_number.replace('-', '')}/{accession_number}.txt"
-                filing_info["filing_url"] = filing_url
-
-        return recent_filings
-
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to fetch recent filings for {company_name}: {e}")
-        return []
-
 def construct_filing_url(cik, adsh, file_id):
     base_url = "https://www.sec.gov/Archives/edgar/data/"
     return f"{base_url}{cik}/{adsh.replace('-', '')}/{file_id}"
 
-def delete_old_files(directory='filings'):
-    """
-    Confirm and delete all files in the specified directory.
-    """
+def delete_old_files(directory=DEFAULT_FILINGS_FOLDER):
     try:
         files = os.listdir(directory)
         if files:
@@ -254,17 +182,7 @@ def delete_old_files(directory='filings'):
         print(f"Directory '{directory}' not found, creating it...")
         os.makedirs(directory, exist_ok=True)
 
-# --- Main Script ---
-delete_old_files('filings')  # Confirm and delete old files before running
-
-try:
-    response = requests.get(url, params=params, headers=headers)
-    response.raise_for_status()
-    data = response.json()
-    
-    # Uncomment this for a raw dump from API 
-    # print(json.dumps(data, indent=2))
-
+def process_filings(data):
     results = []
     if 'hits' in data and 'hits' in data['hits']:
         for result in data['hits']['hits']:
@@ -275,7 +193,7 @@ try:
 
                 filing_info = {
                     "file_number": result['_source'].get('file_num', ['N/A'])[0],
-                    "accession_number": result['_source'].get('adsh', 'N/A'),  # Use ADSH as filing ID
+                    "accession_number": result['_source'].get('adsh', 'N/A'),
                     "form_type": form_type,
                     "primary_doc_description": result['_source'].get('file_description', 'N/A'),
                     "file_date": result['_source'].get('file_date', 'N/A'),
@@ -283,36 +201,38 @@ try:
                     "display_names": result['_source'].get('display_names', []),
                 }
 
-                # Construct the filing URL
-                cik = result['_source'].get('ciks', [''])[0]  # Get the first CIK value
-                file_id = result['_id'].split(":")[1]  # Extract the file ID from _id
+                cik = result['_source'].get('ciks', [''])[0]
+                file_id = result['_id'].split(":")[1]
                 filing_info["filing_url"] = construct_filing_url(cik, filing_info["accession_number"], file_id)
+
+                # Extract relevant excerpts and determine if "cash in lieu" flag should be set
+                cash_in_lieu_flag = extract_relevant_excerpt(filing_info["filing_url"], company_name, form_type)
+                filing_info["in_lieu_flag"] = "Yes" if cash_in_lieu_flag else "No"
 
                 results.append(filing_info)
 
-                # Download the filing without modification
                 download_filing(filing_info["filing_url"], company_name, form_type)
 
-                # Extract and save the excerpt
-                excerpt = extract_relevant_excerpt(result, filing_info["filing_url"], company_name, form_type)
+    return results
 
-    # Process results, remove duplicates, etc.
-    results = list({r['file_number']: r for r in results}.values()) 
-    filtered_results = filter(lambda x: 'file_date' in x, results)
 
-    sorted_results = sorted(
-        filtered_results, 
-        key=lambda x: datetime.strptime(x['file_date'], '%Y-%m-%d') if 'file_date' in x else datetime.min,  
-        reverse=True
-    )
-    write_results_to_file(sorted_results)
+def main():
+    display_intro()
+    delete_old_files(DEFAULT_FILINGS_FOLDER)
+    
+    search_params = get_search_params()
+    try:
+        response = requests.get(BASE_URL, params=search_params, headers=HEADERS)
+        response.raise_for_status()
+        data = response.json()
 
-    print(f"\nrsRoundup located {len(sorted_results)} filings...\n")
-    print("Source filings and relevant excerpts saved.\n")
-    print("See output.txt for details.")
+        results = process_filings(data)
+        unique_results = list({r['file_number']: r for r in results}.values())
+        write_results_to_file(unique_results)
 
-except requests.exceptions.RequestException as e:
-    with open('output.txt', 'w') as f:
-        f.write(f"Request failed: {e}\n")
-    print(f"Request failed: {e}")
+        print(f"Results have been written to {DEFAULT_OUTPUT_FILE}.")
+    except Exception as e:
+        print(f"An error occurred during the process: {e}")
 
+if __name__ == "__main__":
+    main()
