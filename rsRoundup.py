@@ -1,19 +1,23 @@
 import requests
-import yfinance as yf
-from datetime import datetime, timedelta
-import re
 import os
+import re
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
 # --- Configuration ---
 BASE_URL = "https://efts.sec.gov/LATEST/search-index"
 HEADERS = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
-START_DATE = (datetime.today() - timedelta(days=7)).strftime('%Y-%m-%d')
+START_DATE = (datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d') # 5 day search window
 END_DATE = datetime.today().strftime('%Y-%m-%d')
 DEFAULT_OUTPUT_FILE = 'output.txt'
 DEFAULT_FILINGS_FOLDER = 'filings'
-KEYWORDS = ["reverse stock split", "no fractional shares", "reverse split"]
-IN_LIEU_KEYWORDS = ["in lieu"]
+
+# Search and excerpt terms
+SEARCH_TERMS = {
+    "keywords": ["reverse stock split", "no fractional shares", "reverse split"],
+    "in_lieu_keywords": ["in lieu"],
+    "preserve_round_lot_keywords": ["preserve round lot"]
+}
 
 def display_intro():
     intro_text = """
@@ -33,7 +37,13 @@ https://github.com/bchaffee23/rsRoundup
 
 def get_search_params():
     return {
-        "q": "\"reverse split\" AND \"fractional shares\" OR \"Rounded Up\" OR \"rounding\"",
+        "q": " OR ".join([
+            f"\"{term}\"" for term in SEARCH_TERMS["keywords"]
+        ]) + " OR " + " OR ".join([
+            f"\"{term}\"" for term in SEARCH_TERMS["in_lieu_keywords"]
+        ]) + " OR " + " OR ".join([
+            f"\"{term}\"" for term in SEARCH_TERMS["preserve_round_lot_keywords"]
+        ]),
         "dateRange": "custom",
         "startdt": START_DATE,
         "enddt": END_DATE,
@@ -70,7 +80,6 @@ def write_results_to_file(results, filename=DEFAULT_OUTPUT_FILE):
             f.write("===========================================\n")
             f.write("\n")
 
-
 def save_excerpt(excerpt, company_name, form_type, destination_folder=DEFAULT_FILINGS_FOLDER):
     try:
         os.makedirs(destination_folder, exist_ok=True)
@@ -98,29 +107,37 @@ def extract_relevant_excerpt(filing_url, company_name, form_type):
         lines = text_content.split('\n')
         excerpts = []
         in_lieu_excerpts = []
+        round_lot_excerpts = []
         cash_in_lieu_flag = False
+        round_lot_flag = False
 
         for line_number, line in enumerate(lines, start=1):
             line_lower = line.lower()
-            for keyword in KEYWORDS:
+            for keyword in SEARCH_TERMS["keywords"]:
                 if keyword.lower() in line_lower:
                     start = max(line_lower.find(keyword.lower()) - 50, 0)
                     end = min(line_lower.find(keyword.lower()) + len(keyword) + 50, len(line))
                     snippet = line[start:end].strip()
                     excerpts.append(f"Line {line_number}: {snippet}")
 
-            for in_lieu_keyword in IN_LIEU_KEYWORDS:
+            for in_lieu_keyword in SEARCH_TERMS["in_lieu_keywords"]:
                 if in_lieu_keyword.lower() in line_lower:
-                    start = max(line_lower.find(in_lieu_keyword.lower()) - 30, 0)
-                    end = min(line_lower.find(in_lieu_keyword.lower()) + len(in_lieu_keyword) + 30, len(line))
+                    start = max(line_lower.find(in_lieu_keyword.lower()) - 50, 0)
+                    end = min(line_lower.find(in_lieu_keyword.lower()) + len(in_lieu_keyword) + 50, len(line))
                     snippet = line[start:end].strip()
                     in_lieu_excerpts.append(f"Line {line_number}: {snippet}")
                     cash_in_lieu_flag = True  # Set the flag if "in lieu" is found
+                
+            for preserve_round_lot in SEARCH_TERMS["preserve_round_lot_keywords"]:
+                if preserve_round_lot.lower() in line_lower:
+                    start = max(line_lower.find(preserve_round_lot.lower()) - 50, 0)
+                    end = min(line_lower.find(preserve_round_lot.lower()) + len(preserve_round_lot) + 50, len(line))
+                    snippet = line[start:end].strip()
+                    round_lot_excerpts.append(f"Line {line_number}: {snippet}")
+                    round_lot_flag = True  # Set the flag if "preserve round lot" is found
 
-        excerpt_filename = os.path.join('filings', f"{company_name}, {form_type} - Excerpt.txt")
-        in_lieu_filename = os.path.join('filings', f"{company_name}, {form_type} - In Lieu Flag.txt")
-        
         if excerpts:
+            excerpt_filename = os.path.join('filings', f"{company_name}, {form_type} - Excerpt.txt")
             os.makedirs('filings', exist_ok=True)
             with open(excerpt_filename, 'w', encoding='utf-8') as f:
                 f.write('Relevant excerpts:\n')
@@ -128,7 +145,16 @@ def extract_relevant_excerpt(filing_url, company_name, form_type):
                     f.write(f"{excerpt}\n")
             print(f"Excerpt saved to {excerpt_filename}")
 
+        if round_lot_excerpts:
+            roundlot_filename = os.path.join('filings', f"{company_name}, {form_type} - Round Lot.txt")
+            with open(roundlot_filename, 'w', encoding='utf-8') as f:
+                f.write('Relevant excerpts with "preserve round lot":\n')
+                for round_lot_excerpt in round_lot_excerpts:
+                    f.write(f"{round_lot_excerpt}\n")
+            print(f"Round Lot Flag saved to {roundlot_filename}")
+
         if in_lieu_excerpts:
+            in_lieu_filename = os.path.join('filings', f"{company_name}, {form_type} - In Lieu Flag.txt")
             with open(in_lieu_filename, 'w', encoding='utf-8') as f:
                 f.write('Relevant excerpts with "in lieu":\n')
                 for in_lieu_excerpt in in_lieu_excerpts:
@@ -214,7 +240,6 @@ def process_filings(data):
                 download_filing(filing_info["filing_url"], company_name, form_type)
 
     return results
-
 
 def main():
     display_intro()
