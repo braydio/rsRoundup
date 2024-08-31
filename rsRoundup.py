@@ -4,20 +4,23 @@ import re
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
 
-# --- Configuration ---
-BASE_URL = "https://efts.sec.gov/LATEST/search-index"
-HEADERS = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
-START_DATE = (datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d') # 5 day search window
-END_DATE = datetime.today().strftime('%Y-%m-%d')
-DEFAULT_OUTPUT_FILE = 'output.txt'
-DEFAULT_FILINGS_FOLDER = 'filings'
+# --- Adjustable Configuration ---
 
-# Search and excerpt terms
+START_DATE = (datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d') # update 'days=#' to change search window
 SEARCH_TERMS = {
     "keywords": ["reverse stock split", "no fractional shares", "reverse split"],
     "in_lieu_keywords": ["in lieu"],
     "preserve_round_lot_keywords": ["preserve round lot"]
 }
+
+# --- Probably don't change this configuration ---
+BASE_URL = "https://efts.sec.gov/LATEST/search-index"
+HEADERS = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
+END_DATE = datetime.today().strftime('%Y-%m-%d')
+DEFAULT_OUTPUT_FILE = 'output.txt'
+DEFAULT_FILINGS_FOLDER = 'filings'
+
+
 
 def display_intro():
     intro_text = """

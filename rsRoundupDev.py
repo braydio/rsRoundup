@@ -182,8 +182,6 @@ def extract_relevant_excerpt(result, filing_url, company_name, form_type):
 def convert_html_to_pdf(html_file, pdf_file):
     pdfkit.from_file(html_file, pdf_file)
 
-
-
 def download_filing(filing_url, company_name, form_type, destination_folder='filings'):
     """
     Download the filing from the given URL and save it as an .htm file.

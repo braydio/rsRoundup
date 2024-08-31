@@ -1,4 +1,5 @@
 myenv/
-/filings/
+venv/
+filings/
 output.txt/
 lastPrice.py/

@@ -2,14 +2,14 @@
 
 ## Overview
 
-The `rsRoundup` script is designed to fetch and process recent SEC filings related to reverse splits and rounding. It retrieves the data, processes ticker symbols, and provides current stock prices.
+`rsRoundup` is designed to fetch and process recent SEC filings related to reverse splits, cash in lieu corporate actions related to reverse split with share roundup. It retrieves the data, extracts relevant excerpts, and saves the filings for further analysis.
 
 ## Features
 
-- Fetch recent SEC filings based on specific criteria.
-- Extract ticker symbols from filings.
-- Retrieve current stock prices.
-- Save results to a file and downloads the filings.
+- Fetch recent SEC filings based on specific keywords.
+- Extract relevant excerpts from the filings, focusing on terms like "reverse stock split," "cash in lieu," and "preserve round lot."
+- Save results and download filings in a structured format.
+- Delete old files in the `filings` folder before processing new data.
 
 ## Installation
 
@@ -38,14 +38,21 @@ The `rsRoundup` script is designed to fetch and process recent SEC filings relat
 
 ## Configuration
 
-Update the following variables in `autoRSA.py`:
+### Script Parameters
 
-- `start_date` and `end_date`: Define the date range for the search. 
-    'timedelta(days=7)' will set the start date to be 1 week prior
-    
-- Search params can be changed, current search parameters are 
-    
-    "q": "\"reverse split\" AND \"fractional shares\" OR \"Rounded Up\" OR \"rounding\"",
+- **Date Range**: Update the following variables in `autoRSA.py` to define the date range for the search:
+  - `START_DATE`: The start date for fetching filings (default is 7 days prior to the current date).
+  - `END_DATE`: The end date for fetching filings (default is the current date).
+
+### Search Terms
+
+The search terms can be modified in the `SEARCH_TERMS` dictionary within `autoRSA.py`. The current keywords are:
+
+- `keywords`: Terms related to reverse stock splits, e.g., "reverse stock split," "no fractional shares," "reverse split."
+- `in_lieu_keywords`: Terms related to cash in lieu, e.g., "in lieu."
+- `preserve_round_lot_keywords`: Terms related to preserving round lots, e.g., "preserve round lot."
+
+These terms are used to search within the SEC filings and extract relevant information.
 
 ## Contributing
 
