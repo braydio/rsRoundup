@@ -3,10 +3,10 @@ import os
 import re
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-
+from config import BACK_DATED, CUSTOM_END_DATE
 # --- Adjustable Configuration ---
 
-START_DATE = (datetime.today() - timedelta(days=2)).strftime('%Y-%m-%d') # update 'days=#' to change search window
+START_DATE = (datetime.today() - timedelta(days=BACK_DATED)).strftime('%Y-%m-%d') # update 'days=#' to change search window
 SEARCH_TERMS = {
     "keywords": ["reverse stock split", "no fractional shares", "reverse split"],
     "in_lieu_keywords": ["in lieu"],
@@ -16,11 +16,14 @@ SEARCH_TERMS = {
 # --- Probably don't change this configuration ---
 BASE_URL = "https://efts.sec.gov/LATEST/search-index"
 HEADERS = {"User-Agent": "MyApp/1.0 (my.email@example.com)"}
-END_DATE = datetime.today().strftime('%Y-%m-%d')
+TODAY = datetime.today().strftime('%Y-%m-%d')
 DEFAULT_OUTPUT_FILE = 'output.txt'
 DEFAULT_FILINGS_FOLDER = 'filings'
 
-
+if CUSTOM_END_DATE is not None:
+    END_DATE = CUSTOM_END_DATE
+else:
+    END_DATE = TODAY
 
 def display_intro():
     intro_text = """
@@ -31,9 +34,9 @@ def display_intro():
  /_/  /____/_/ |_|\\____/\\__,_/_/ /_/\\__,_/\\__,_/ .___/  
                                                /_/      
 
-rsRoundup script v1.0 created by @Braydio
+rsRoundup script v1.1 created by @braydio
 Contributions by @echo and @ckzz on Xtrades
-https://github.com/bchaffee23/rsRoundup
+https://github.com/braydio/rsRoundup
 
 """
     print(intro_text)
@@ -247,7 +250,7 @@ def process_filings(data):
 def main():
     display_intro()
     delete_old_files(DEFAULT_FILINGS_FOLDER)
-    
+    print(f"Sending request to {BASE_URL} for date range {START_DATE} through {END_DATE}...")
     search_params = get_search_params()
     try:
         response = requests.get(BASE_URL, params=search_params, headers=HEADERS)
