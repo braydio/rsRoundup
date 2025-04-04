@@ -16,9 +16,9 @@ print("  / /  (__  ) _, _/ /_/ / /_/ / / / / /_/ / /_/ / /_/ / ")
 print(" /_/  /____/_/ |_|\\____/\\__,_/_/ /_/\\__,_/\\__,_/ .___/  ")
 print("                                               /_/      ")
 
-print("rsRoundup script v1.0 created by @Braydio")
+print("rsRoundup script v1.0 created by @braydio")
 print("Contributions by @echo and @ckzz on Xtrades")
-print("https://github.com/bchaffee23/rsRoundup\n\n")
+print("https://github.com/braydio/rsRoundup\n\n")
 
 
 # --- Configuration ---
