@@ -30,23 +30,23 @@
 
 ## Usage
 
-1. Configure the script parameters in the `autoRSA.py` file.
+1. Configure the script parameters in the `rsRoundup.py` file.
 2. Run the script:
     ```bash
-    python autoRSA.py
+    python rsRoundup.py
     ```
 
 ## Configuration
 
 ### Script Parameters
 
-- **Date Range**: Update the following variables in `autoRSA.py` to define the date range for the search:
+- **Date Range**: Update the following variables in `rsRoundup.py` to define the date range for the search:
   - `START_DATE`: The start date for fetching filings (default is 7 days prior to the current date).
   - `END_DATE`: The end date for fetching filings (default is the current date).
 
 ### Search Terms
 
-The search terms can be modified in the `SEARCH_TERMS` dictionary within `autoRSA.py`. The current keywords are:
+The search terms can be modified in the `SEARCH_TERMS` dictionary within `rsRoundup.py`. The current keywords are:
 
 - `keywords`: Terms related to reverse stock splits, e.g., "reverse stock split," "no fractional shares," "reverse split."
 - `in_lieu_keywords`: Terms related to cash in lieu, e.g., "in lieu."
